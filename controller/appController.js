@@ -4,7 +4,8 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const USER = require("../Models/UserModels.js");
 const bcrypt = require("bcrypt");
-// const genratatoken = require("../util/generateToken.js");
+const sendmail = require("../mailtrap/emails.js");
+
 const getAll = async (req, res) => {
   try {
     const user = await USER.find({});
@@ -54,16 +55,14 @@ const sign = async (req, res) => {
       email,
       pwd: hash,
       verificationToken,
-      verifyTokenexpiredAt: Date.now() + 1000 * 60 * 60 * 24 * 7,
+      verifyTokenexpiredAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
     });
 
     console.log(user);
 
-    // Générer le token après que l'utilisateur a été créé
     const token = generateToken(user._id);
-    const sendVerificationMail = await sendMail(user.email, verificationToken);
+    await sendmail(user.email, verificationToken); // Correction ici
 
-    // Envoie la réponse ici
     return res.status(201).json({
       message: "Utilisateur enregistré avec succès",
       token,
@@ -71,9 +70,8 @@ const sign = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    // Envoie une réponse d'erreur si une exception se produit
     return res.status(500).send({
-      message: "Erreur lors de l'enregistrement de l'utilisateur",
+      message: "Erreur lors de l'enregistrement de l'utilisateur ",
       error,
     });
   }
