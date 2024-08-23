@@ -61,6 +61,7 @@ const sign = async (req, res) => {
 
     // Générer le token après que l'utilisateur a été créé
     const token = generateToken(user._id);
+    const sendVerificationMail = await sendMail(user.email, verificationToken);
 
     // Envoie la réponse ici
     return res.status(201).json({
