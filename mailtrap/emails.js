@@ -1,6 +1,10 @@
 const { MailtrapClient } = require("mailtrap");
 require("dotenv").config();
-
+const {
+  MODELE_EMAIL_VERIFICATION,
+  MODELE_DEMANDE_REINITIALISATION_MOT_DE_PASSE,
+  MODELE_REINITIALISATION_MOT_DE_PASSE_SUCCES,
+} = require("./templateEmail.js");
 const TOKEN = process.env.MAILTRAP_TOKEN;
 const ENDPOINT = process.env.MAILTRAP_ENDPOINT;
 
@@ -18,7 +22,10 @@ const sendEmail = async (email, verificationToken) => {
       from: sender,
       to: recipients,
       subject: "Verify your email",
-      html: `Your verification code is: ${verificationToken}`, // Remplace par ton template HTML
+      html: MODELE_EMAIL_VERIFICATION.replace(
+        "{verificationCode}",
+        verificationToken
+      ), // Remplace par ton template HTML
       category: "verification-email",
     });
     console.log("Email sent", response);
