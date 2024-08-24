@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const USER = require("../Models/UserModels.js");
 const bcrypt = require("bcrypt");
-const sendmail = require("../mailtrap/emails.js");
+const { sendEmail, sendMailwelcome } = require("../mailtrap/emails.js");
 
 const getAll = async (req, res) => {
   try {
@@ -61,7 +61,7 @@ const sign = async (req, res) => {
     console.log(user);
 
     const token = generateToken(user._id);
-    await sendmail(user.email, verificationToken); // Correction ici
+    await sendEmail(user.email, verificationToken); // Correction ici
 
     return res.status(201).json({
       message: "Utilisateur enregistré avec succès",
@@ -77,4 +77,36 @@ const sign = async (req, res) => {
   }
 };
 
-module.exports = { getAll, sign };
+const verifyEmail = async (req, res) => {
+  const { code } = req.body;
+  try {
+    const user = await USER.findOne({
+      verificationToken: code,
+      verifyTokenexpiredAt: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired verification code" });
+    }
+
+    (user.isverify = true),
+      (user.verificationToken = undefined),
+      (user.verifyTokenexpiredAt = undefined),
+      await user.save();
+
+    await sendMailwelcome(user.email, user.name);
+    res.status(200).send({
+      message: "Email envoyé avec succès",
+      user: { ...user._doc },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send({
+      message: "Erreur lors de la vérification de l'email",
+      error,
+    });
+  }
+};
+
+module.exports = { getAll, sign, verifyEmail };
