@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 const express = require("express");
-const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const USER = require("../Models/UserModels.js");
 const bcrypt = require("bcrypt");
 const { sendEmail, sendMailwelcome } = require("../mailtrap/emails.js");
+
+const { generateToken } = require("../util/generatoken.js");
 
 const getAll = async (req, res) => {
   try {
@@ -22,13 +23,6 @@ const getAll = async (req, res) => {
       .jsaon({ message: "une erreur s'est produite: ", error });
     console.log("Une erreur s'est produite: ", error);
   }
-};
-
-const generateToken = (userId) => {
-  const token = jwt.sign({ id: userId }, process.env.SECRET, {
-    expiresIn: 60 * 60 * 24 * 7, // 1 semaine
-  });
-  return token;
 };
 
 const sign = async (req, res) => {
@@ -109,4 +103,39 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-module.exports = { getAll, sign, verifyEmail };
+const logout = async (req, res) => {
+  try {
+    res.clearCookie("token");
+    res.status(200).json({ message: "Déconnexion réussie" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Une erreur est survenue lors de la déconnexion" });
+  }
+};
+
+const login = async (req, res) => {
+  const { email, pwd } = req.body;
+  try {
+    const user = await USER.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "L'utilisateur n'existe pas" });
+    }
+    const isPasswordCorrect = await bcrypt.compare(pwd, user.pwd);
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Mot de passe incorrect" });
+    }
+    generateToken(user._id);
+    (user.lastLogin = new Date()), await user.save();
+    res
+      .status(200)
+      .json({ message: "Connexion réussie", user: { ...user._doc } });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ message: "Une erreur est survenue lors de la connexion" });
+  }
+};
+
+module.exports = { getAll, sign, verifyEmail, logout, login };
