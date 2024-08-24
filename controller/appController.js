@@ -3,10 +3,12 @@ const express = require("express");
 require("dotenv").config();
 const USER = require("../Models/UserModels.js");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 const {
   sendEmail,
   sendMailwelcome,
   sendMailforgotPwd,
+  sendResetsuccess,
 } = require("../mailtrap/emails.js");
 
 const { generateToken } = require("../util/generatoken.js");
@@ -150,7 +152,7 @@ const forgotPwd = async (req, res) => {
       return res.status(400).json({ message: "L'utilisateur n'existe pas" });
     }
     resetpwdExpireAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    const token = crypto.randomBytes(20).toString("hex");
     user.resetpwdToken = token;
     user.resetpwdExpireAt = resetpwdExpireAt;
     await user.save();
@@ -167,12 +169,48 @@ const forgotPwd = async (req, res) => {
       token,
       user: { ...user._doc },
     });
-  } catch (error) {}
+  } catch (error) {
+    console.log(error);
+  }
 };
 
 const resetpwd = async (req, res) => {
   try {
-  } catch (error) {}
+    const { token } = req.params;
+    const { pwd } = req.body;
+
+    if (!pwd) {
+      return res.status(400).json({ message: "Le mot de passe est requis" });
+    }
+
+    const user = await USER.findOne({
+      resetpwdToken: token,
+      resetpwdExpireAt: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Token de réinitialisation expiré" });
+    }
+
+    const hash = await bcrypt.hash(pwd, 10);
+    user.pwd = hash;
+    user.resetpwdToken = null;
+    user.resetpwdExpireAt = null;
+    await user.save();
+    await sendResetsuccess(user.email);
+
+    res.status(200).json({
+      success: true,
+      message: "Mot de passe réinitialisé avec succès",
+    });
+  } catch (error) {
+    console.log("erreur ", error);
+    return res
+      .status(400)
+      .json({ message: "Une erreur est survenue " + error.message });
+  }
 };
 
 module.exports = {

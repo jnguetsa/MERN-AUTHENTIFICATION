@@ -72,4 +72,24 @@ const sendMailforgotPwd = async (email, resetURL) => {
       .json({ message: "Erreur lors de l'envoi de l'email" + error.message });
   }
 };
-module.exports = { sendEmail, sendMailwelcome, sendMailforgotPwd };
+const sendResetsuccess = async (email) => {
+  const recipients = [{ email }];
+  try {
+    const response = await mailtrapClient.send({
+      from: sender,
+      to: recipients,
+      subject: "Reset your password",
+      html: MODELE_DEMANDE_REINITIALISATION_MOT_DE_PASSE,
+      category: "password-reset-email",
+    });
+    console.log("Email sent successfully", response);
+  } catch (error) {
+    console.error("Erreur ", error);
+  }
+};
+module.exports = {
+  sendEmail,
+  sendMailwelcome,
+  sendMailforgotPwd,
+  sendResetsuccess,
+};

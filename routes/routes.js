@@ -11,6 +11,6 @@ router.post("/verifyEmail", controller.verifyEmail);
 router.post("/logout", controller.logout);
 router.post("/login", controller.login);
 router.post("/forgotPwd", controller.forgotPwd);
-router.post("/resetpwd", controller.resetpwd);
+router.post("/resetpwd/:token", controller.resetpwd);
 
 module.exports = router;
