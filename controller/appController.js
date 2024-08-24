@@ -3,7 +3,11 @@ const express = require("express");
 require("dotenv").config();
 const USER = require("../Models/UserModels.js");
 const bcrypt = require("bcrypt");
-const { sendEmail, sendMailwelcome } = require("../mailtrap/emails.js");
+const {
+  sendEmail,
+  sendMailwelcome,
+  sendMailforgotPwd,
+} = require("../mailtrap/emails.js");
 
 const { generateToken } = require("../util/generatoken.js");
 
@@ -138,4 +142,45 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { getAll, sign, verifyEmail, logout, login };
+const forgotPwd = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await USER.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "L'utilisateur n'existe pas" });
+    }
+    resetpwdExpireAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
+    const token = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetpwdToken = token;
+    user.resetpwdExpireAt = resetpwdExpireAt;
+    await user.save();
+
+    await sendMailforgotPwd(
+      user.email,
+      `${process.env.MAIL_SEND_FORGOTPWD}/forgotPwd/${token}`
+    );
+    res
+      .status(200)
+      .json({ message: "Cliquer sur le lien de reinitialisation" });
+    return res.status(200).json({
+      message: "Email envoyé avec succès",
+      token,
+      user: { ...user._doc },
+    });
+  } catch (error) {}
+};
+
+const resetpwd = async (req, res) => {
+  try {
+  } catch (error) {}
+};
+
+module.exports = {
+  getAll,
+  sign,
+  verifyEmail,
+  logout,
+  login,
+  forgotPwd,
+  resetpwd,
+};

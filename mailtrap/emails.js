@@ -5,7 +5,6 @@ const {
   MODELE_DEMANDE_REINITIALISATION_MOT_DE_PASSE,
   MODELE_REINITIALISATION_MOT_DE_PASSE_SUCCES,
 } = require("./templateEmail.js");
-const { emit } = require("../Models/UserModels.js");
 const TOKEN = process.env.MAILTRAP_TOKEN;
 const ENDPOINT = process.env.MAILTRAP_ENDPOINT;
 
@@ -52,5 +51,25 @@ const sendMailwelcome = async (email, name) => {
     console.error("Erreur ", error);
   }
 };
-
-module.exports = { sendEmail, sendMailwelcome };
+const sendMailforgotPwd = async (email, resetURL) => {
+  const recipients = [{ email }];
+  try {
+    const response = await mailtrapClient.send({
+      from: sender,
+      to: recipients,
+      subject: "Reset your password",
+      html: MODELE_DEMANDE_REINITIALISATION_MOT_DE_PASSE.replace(
+        "{resetURL}",
+        resetURL
+      ),
+      category: "password-reset-email",
+    });
+    console.log("Email sent successfully", response);
+  } catch (error) {
+    console.error("Erreur ", error);
+    res
+      .status(500)
+      .json({ message: "Erreur lors de l'envoi de l'email" + error.message });
+  }
+};
+module.exports = { sendEmail, sendMailwelcome, sendMailforgotPwd };
